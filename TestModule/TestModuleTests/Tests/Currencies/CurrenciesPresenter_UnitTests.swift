@@ -82,7 +82,7 @@ class CurrenciesPresenter_UnitTests: XCTestCase {
         
         presenter.didSelectCell(with: .BRL)
         
-        XCTAssertTrue(presenter.lastSelected.abbr == .BRL)
+        XCTAssertTrue(presenter.lastSelectedAbbr == .BRL)
         for item in expectedModels {
             XCTAssertTrue(item.ratio == presenter.values.filter({$0.abbr == item.abbr}).first?.ratio)
         }
@@ -95,7 +95,7 @@ class CurrenciesPresenter_UnitTests: XCTestCase {
         let presenter = CurrenciesListPresenter()
         presenter.didChange(value: expectedValue)
         
-        XCTAssertTrue(presenter.lastSelected.value == expectedDecimal)
+        XCTAssertTrue(presenter.lastSelectedValue == expectedDecimal)
     
     }
     
@@ -131,7 +131,7 @@ fileprivate class CurrenciesViewMock: CurrenciesListViewInput {
         state = .showError
     }
     
-    func updateTable(with models: [CurrenciesListViewCellModel]) {
+    func updateTable(with models: [CurrenciesListCurrencyPresenterModel]) {
         state = .updateTable
     }
     

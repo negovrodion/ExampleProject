@@ -8,41 +8,61 @@
 
 import UIKit
 
+// MARK: - CurrenciesTableViewManagerDataProviderProtocol
+protocol CurrenciesTableViewManagerDataProviderProtocol {
+    var lastSelectedValue: Decimal { get }
+    var lastSelectedAbbr: CurrencyAbbr { get }
+    var values: Set<CurrenciesListCurrencyPresenterModel> { get }
+}
+
+// MARK: - CurrenciesTableViewManagerDelegate
+protocol CurrenciesTableViewManagerDelegate: class, CurrenciesTableViewManagerDataProviderProtocol {
+    func didChange(value: String)
+    func moveToTop(abbr: CurrencyAbbr)
+}
+
 // MARK: - CurrenciesTableViewManager
 final class CurrenciesTableViewManager: NSObject {
     
     // MARK: - Injections
-    weak var output: CurrenciesListViewOutput!
+    weak var delegate: CurrenciesTableViewManagerDelegate?
     weak var tableView: UITableView?
     
     // MARK: - Properties
-    fileprivate var indexPathAndAbbrMatching = [CurrenciesListViewCellModel]()
+    fileprivate var indexPathAndAbbrMatching = [CurrencyAbbr]()
     
     // MARK: - Functions
-    func update(with models: [CurrenciesListViewCellModel]) {
-        if indexPathAndAbbrMatching.count != models.count {
-            indexPathAndAbbrMatching = models
+    func update(with models: [CurrenciesListCurrencyPresenterModel]) {
+        if indexPathAndAbbrMatching.count != delegate?.values.count {
+            indexPathAndAbbrMatching = models.map({ $0.abbr })
             
             tableView?.reloadData()
         } else {
-            updateCellsExeptFirst(models: models)
+            updateCellsExeptFirst()
         }
     }
     
     // MARK: - Private functions
-    fileprivate func updateCellsExeptFirst(models: [CurrenciesListViewCellModel]) {
-        var updatedValues = [String]()
-        for (item, model) in indexPathAndAbbrMatching.enumerated() {
-            guard item != 0, item < models.count else { continue }
+    fileprivate func updateCellsExeptFirst() {
+        let updatedValues = indexPathAndAbbrMatching.compactMap { (currencyAbbr) -> String? in
+            guard let lastSelectedAbbr = delegate?.lastSelectedAbbr,
+                let lastSelectedValue = delegate?.lastSelectedValue, currencyAbbr != lastSelectedAbbr else {
+                return delegate?.lastSelectedValue.toMoneyString
+            }
             
-            let value = models.filter({ $0.abbr == model.abbr }).first?.value ?? ""
-            indexPathAndAbbrMatching[item].value = value
+            guard let ratio = delegate?.values.filter({ $0.abbr == currencyAbbr }).first?.ratio else {
+                return ""
+            }
             
-            updatedValues.append(value)
+            let curVal = ratio * lastSelectedValue
+            
+            return curVal.toMoneyString
         }
         
         for (item, value) in updatedValues.enumerated() {
-            let indexPath = IndexPath(row: item + 1, section: 0)
+            guard item > 0 else { continue }
+            
+            let indexPath = IndexPath(row: item, section: 0)
             guard let cell = tableView?.cellForRow(at: indexPath) as? CurrenciesListTableViewCell else { continue }
             
             cell.updateCurrencyValue(with: value)
@@ -81,45 +101,61 @@ extension CurrenciesTableViewManager: UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return indexPathAndAbbrMatching.count
+        return delegate?.values.count ?? 0
     }
     
     // MARK: - Private functions
     private func configureCurrenciesListTableViewCell(cell: CurrenciesListTableViewCell, for indexPath: IndexPath) {
-        guard indexPath.row < indexPathAndAbbrMatching.count else {
-            return
+        if let model = currenciesListViewCellModelFor(indexPath: indexPath) {
+            cell.configure(with: model, delegate: self)
         }
-        
-        let model = indexPathAndAbbrMatching[indexPath.row]
-        
-        cell.configure(with: model, delegate: self)
     }
+    
+    private func currenciesListViewCellModelFor(indexPath: IndexPath) -> CurrenciesListViewCellModel? {
+        guard indexPathAndAbbrMatching.count > indexPath.row,
+            let val = delegate?.values.filter({ $0.abbr == indexPathAndAbbrMatching[indexPath.row] }).first,
+            let lastSelectedValue = delegate?.lastSelectedValue else { return nil }
+        
+        let curName = val.abbr.rawValue
+        let curVal  = val.ratio * lastSelectedValue
+        
+        let model = CurrenciesListViewCellModel(curName: curName, value: curVal.toMoneyString)
+        
+        return model
+    }
+    
 }
 
 // MARK: - CurrenciesListTableViewCellDelegate
 extension CurrenciesTableViewManager: CurrenciesListTableViewCellDelegate {
-    
     func didBecomeFirstResponder(cell: UITableViewCell) {
         guard let indexPath = tableView?.indexPath(for: cell), indexPathAndAbbrMatching.count > indexPath.row else {
             return
         }
-
+        
         let topIndexPath = IndexPath(row: 0, section: 0)
         tableView?.moveRow(at: indexPath, to: topIndexPath)
-
-        let abbr = indexPathAndAbbrMatching[indexPath.row].abbr
+        
+        let abbr = indexPathAndAbbrMatching[indexPath.row]
         moveToTop(with: indexPath)
-        output.didSelectCell(with: abbr)
+        delegate?.moveToTop(abbr: abbr)
+        updateCellsExeptFirst()
+        
+        guard let lastSelectedValue = delegate?.lastSelectedValue.toMoneyString else { return }
+        updateFirstValue(value: lastSelectedValue)
     }
-
+    
     func didChangeValue(cell: UITableViewCell, value: String) {
-        output.didChange(value: value)
+        delegate?.didChange(value: value)
+        
+        updateCellsExeptFirst()
     }
     
     // MARK: - Private functions
     private func moveToTop(with: IndexPath) {
         guard indexPathAndAbbrMatching.count > with.row, with.row > 0 else { return }
         let topModel = indexPathAndAbbrMatching[with.row]
+        
         
         for i in (1...with.row).reversed() {
             indexPathAndAbbrMatching[i] = indexPathAndAbbrMatching[i - 1]

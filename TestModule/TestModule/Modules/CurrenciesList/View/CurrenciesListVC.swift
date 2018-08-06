@@ -23,7 +23,7 @@ final class CurrenciesListVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        tableViewManager.output    = output
+        tableViewManager.delegate  = self
         tableViewManager.tableView = tableView
         
         output.viewDidLoad()
@@ -77,12 +77,10 @@ extension CurrenciesListVC: CurrenciesListViewInput {
         switch type {
         case .canNotUpdate:
             Drop.down(String.Strings.canNotUpdate)
-        case .dataInconsistency:
-            Drop.down(String.Strings.canNotUpdate)
         }
     }
     
-    func updateTable(with models: [CurrenciesListViewCellModel]) {
+    func updateTable(with models: [CurrenciesListCurrencyPresenterModel]) {
         tableViewManager.update(with: models)
     }
     
@@ -90,11 +88,26 @@ extension CurrenciesListVC: CurrenciesListViewInput {
         setup()
     }
 }
-//
-//// MARK: - CurrenciesTableViewManagerDelegate
-//extension CurrenciesListVC: CurrenciesTableViewManagerDelegate {
- 
-//    func moveToTop(abbr: CurrencyAbbr) {
-//        output.didSelectCell(with: abbr)
-//    }
-//}
+
+// MARK: - CurrenciesTableViewManagerDelegate
+extension CurrenciesListVC: CurrenciesTableViewManagerDelegate {
+    var lastSelectedValue: Decimal {
+        return output.lastSelectedValue
+    }
+    
+    var lastSelectedAbbr: CurrencyAbbr {
+        return output.lastSelectedAbbr
+    }
+    
+    var values: Set<CurrenciesListCurrencyPresenterModel> {
+        return output.values
+    }
+    
+    func didChange(value: String) {
+        output.didChange(value: value)
+    }
+    
+    func moveToTop(abbr: CurrencyAbbr) {
+        output.didSelectCell(with: abbr)
+    }
+}

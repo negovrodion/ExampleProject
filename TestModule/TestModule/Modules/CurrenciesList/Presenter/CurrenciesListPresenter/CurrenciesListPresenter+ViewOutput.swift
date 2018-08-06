@@ -10,6 +10,13 @@ import Foundation
 
 // MARK: - CurrenciesListViewOutput
 extension CurrenciesListPresenter: CurrenciesListViewOutput {
+    var lastSelectedValue: Decimal {
+        return lastSelected.value
+    }
+    
+    var lastSelectedAbbr: CurrencyAbbr {
+        return lastSelected.abbr
+    }
     
     func viewDidLoad() {
         view?.setupView()
@@ -29,25 +36,9 @@ extension CurrenciesListPresenter: CurrenciesListViewOutput {
         lastSelected.ratio = 1
         
         recalculateRatios(oldRatio: oldRatio)
-        
-        updateTable()
     }
     
     func didChange(value: String) {
         lastSelected.value = Decimal(string: value) ?? 0
-        
-        updateTable()
-    }
-    
-    // MARK: - Private functions
-    private func updateTable() {
-        let cellModels = values.map { (model) -> CurrenciesListViewCellModel in
-            let curVal    = model.ratio * lastSelected.value
-            let cellModel = CurrenciesListViewCellModel(abbr: model.abbr, value: curVal.toMoneyString)
-            
-            return cellModel
-        }
-        
-        view?.updateTable(with: cellModels)
     }
 }

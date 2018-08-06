@@ -11,5 +11,4 @@ import Foundation
 // MARK: - CurrenciesListViewError
 enum CurrenciesListViewError {
     case canNotUpdate
-    case dataInconsistency
 }
