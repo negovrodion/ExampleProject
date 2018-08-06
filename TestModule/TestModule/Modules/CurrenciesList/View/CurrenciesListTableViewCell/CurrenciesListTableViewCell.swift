@@ -20,7 +20,6 @@ final class CurrenciesListTableViewCell: UITableViewCell {
     private enum Constants {
         static let toolbarHeight = CGFloat(50)
         static let placeholderForCurrencyValue = "0"
-        static let maxInputTextLength = 25
     }
     
     // MARK: - Properties
@@ -87,14 +86,11 @@ extension CurrenciesListTableViewCell: UITextFieldDelegate {
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange,
                    replacementString string: String) -> Bool {
         guard textField.text?.isEmpty == false || string != "." || string != "," else { return false }
-        guard let count = textField.text?.count,
-            count < Constants.maxInputTextLength || string == "" else { return false }
         guard let oldText = textField.text, let range = Range(range, in: oldText) else {
             return true
         }
         
-        let newText = oldText.replacingCharacters(in: range, with: string).replacingOccurrences(of: ",", with: ".")
-            .replacingOccurrences(of: " ", with: "")
+        let newText = oldText.replacingCharacters(in: range, with: string)
 
         delegate?.didChangeValue(cell: self, value: newText)
         

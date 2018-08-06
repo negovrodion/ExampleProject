@@ -18,8 +18,12 @@ extension CurrenciesListPresenter: CurrenciesListViewOutput {
         startUpdatingTimer()
     }
     
-    func didSelectCell(with abbr: CurrencyAbbr) {
-        guard let value = getValue(with: abbr) else { return }
+    func numberOfRowsForTable() -> Int {
+        return values.count
+    }
+    
+    func didSelectCell(with indexPath: IndexPath) {
+        guard let value = getValue(byIndexPath: indexPath) else { return }
         
         let oldRatio              = value.ratio
         let prevLastSelectedValue = lastSelected.value
@@ -28,26 +32,26 @@ extension CurrenciesListPresenter: CurrenciesListViewOutput {
         lastSelected.value = lastSelected.ratio * prevLastSelectedValue
         lastSelected.ratio = 1
         
+        moveToTop(with: indexPath)
         recalculateRatios(oldRatio: oldRatio)
-        
-        updateTable()
+        updateValuesExeptFirst()
+        view?.updateFirstValue(value: lastSelected.value.toMoneyString)
     }
     
     func didChange(value: String) {
         lastSelected.value = Decimal(string: value) ?? 0
         
-        updateTable()
+        updateValuesExeptFirst()
     }
     
-    // MARK: - Private functions
-    private func updateTable() {
-        let cellModels = values.map { (model) -> CurrenciesListViewCellModel in
-            let curVal    = model.ratio * lastSelected.value
-            let cellModel = CurrenciesListViewCellModel(abbr: model.abbr, value: curVal.toMoneyString)
-            
-            return cellModel
-        }
+    func cellFor(indexPath: IndexPath) -> CurrenciesListViewCellModel? {
+        guard let val = getValue(byIndexPath: indexPath) else { return nil }
         
-        view?.updateTable(with: cellModels)
+        let curName = val.abbr.rawValue
+        let curVal  = val.ratio * lastSelected.value
+        
+        let model = CurrenciesListViewCellModel(curName: curName, value: curVal.toMoneyString)
+        
+        return model
     }
 }

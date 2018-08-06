@@ -27,24 +27,14 @@ extension CurrenciesListPresenter: CurrenciesListInteractorOutput {
         supplementedModels.append(contentsOf: models)
         
         values = Set(supplementedModels)
-        
-        var cellModels = [CurrenciesListViewCellModel]()
-        
-        for model in supplementedModels {
-            guard let val = getValue(with: model.abbr) else {
-                view?.showError(type: .dataInconsistency)
-                
-                return
-            }
 
-            let curVal    = val.ratio * lastSelected.value
-            let cellModel = CurrenciesListViewCellModel(abbr: val.abbr, value: curVal.toMoneyString)
+        if indexPathAndAbbrMatching.count != values.count {
+            indexPathAndAbbrMatching = supplementedModels.map({ $0.abbr })
             
-            cellModels.append(cellModel)
+            view?.updateTable()
+        } else {
+            updateValuesExeptFirst()
         }
-        
-        view?.updateTable(with: cellModels)
-
     }
     
 }

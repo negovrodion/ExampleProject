@@ -10,10 +10,6 @@ import Foundation
 
 // MARK: - CurrenciesListViewCellModel
 struct CurrenciesListViewCellModel {
-    var abbr: CurrencyAbbr
+    var curName: String
     var value: String
-    
-    var curName: String {
-        return abbr.rawValue
-    }
 }

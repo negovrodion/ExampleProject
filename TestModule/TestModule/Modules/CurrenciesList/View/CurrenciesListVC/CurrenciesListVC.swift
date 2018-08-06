@@ -17,14 +17,10 @@ final class CurrenciesListVC: UIViewController {
     
     // MARK: - Injections
     var output: CurrenciesListViewOutput!
-    var tableViewManager = CurrenciesTableViewManager()
     
     // MARK: - Lify cycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        tableViewManager.output    = output
-        tableViewManager.tableView = tableView
         
         output.viewDidLoad()
     }
@@ -46,20 +42,28 @@ final class CurrenciesListVC: UIViewController {
     
     // MARK: - Private functions
     private func setup() {
-        tableView.dataSource = tableViewManager
-        tableView.delegate   = tableViewManager
+        tableView.dataSource = self
+        tableView.delegate   = self
         
         tableView.register(UINib(nibName: CurrenciesListTableViewCell.reuseId, bundle: Bundle.main),
                            forCellReuseIdentifier: CurrenciesListTableViewCell.reuseId)
         
     }
     
+    func moveCellToTop(indexPath: IndexPath) {
+        let topIndexPath = IndexPath(row: 0, section: 0)
+        
+        tableView.moveRow(at: indexPath, to: topIndexPath)
+        
+        output.didSelectCell(with: indexPath)
+    }
+    
     @objc private func keyboardWillShow(notification: Notification) {
-        guard let keyboardSize = notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? CGRect else {
+        guard let keyboardSize = notification.userInfo?[UIKeyboardFrameBeginUserInfoKey] as? CGRect else {
             return
         }
         
-        let contentInsets = UIEdgeInsets(top: 0, left: 0, bottom: keyboardSize.size.height, right: 0)
+        let contentInsets = UIEdgeInsets(top: 0, left: 0, bottom: keyboardSize.size.width, right: 0)
         
         tableView.contentInset          = contentInsets
         tableView.scrollIndicatorInsets = contentInsets
@@ -77,24 +81,46 @@ extension CurrenciesListVC: CurrenciesListViewInput {
         switch type {
         case .canNotUpdate:
             Drop.down(String.Strings.canNotUpdate)
-        case .dataInconsistency:
-            Drop.down(String.Strings.canNotUpdate)
         }
     }
     
-    func updateTable(with models: [CurrenciesListViewCellModel]) {
-        tableViewManager.update(with: models)
+    func updateTable() {
+        tableView.reloadData()
+    }
+    
+    func updateValuesExeptFirst(values: [String]) {
+        for (item, value) in values.enumerated() {
+            guard item > 0 else { continue }
+            
+            let indexPath = IndexPath(row: item, section: 0)
+            guard let cell = tableView.cellForRow(at: indexPath) as? CurrenciesListTableViewCell else { continue }
+            
+            cell.updateCurrencyValue(with: value)
+        }
     }
     
     func setupView() {
         setup()
     }
+    
+    func updateFirstValue(value: String) {
+        let indexPath = IndexPath(row: 0, section: 0)
+        guard let cell = tableView.cellForRow(at: indexPath) as? CurrenciesListTableViewCell else { return }
+        
+        cell.updateCurrencyValue(with: value)
+    }
 }
-//
-//// MARK: - CurrenciesTableViewManagerDelegate
-//extension CurrenciesListVC: CurrenciesTableViewManagerDelegate {
- 
-//    func moveToTop(abbr: CurrencyAbbr) {
-//        output.didSelectCell(with: abbr)
-//    }
-//}
+
+// MARK: - CurrenciesListTableViewCellDelegate
+extension CurrenciesListVC: CurrenciesListTableViewCellDelegate {
+    func didBecomeFirstResponder(cell: UITableViewCell) {
+        guard let indexPath = tableView?.indexPath(for: cell) else { return }
+        
+        moveCellToTop(indexPath: indexPath)
+    }
+    
+    func didChangeValue(cell: UITableViewCell, value: String) {
+        output.didChange(value: value)
+    }
+    
+}

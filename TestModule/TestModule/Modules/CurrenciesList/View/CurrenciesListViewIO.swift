@@ -12,13 +12,17 @@ import UIKit
 protocol CurrenciesListViewInput: class {
     func setupView()
     func showError(type: CurrenciesListViewError)
-    func updateTable(with models: [CurrenciesListViewCellModel])
+    func updateTable()
+    func updateValuesExeptFirst(values: [String])
+    func updateFirstValue(value: String)
 }
 
 // MARK: - CurrenciesListViewOutput
-protocol CurrenciesListViewOutput: class {
+protocol CurrenciesListViewOutput {
     func viewDidLoad()
-    func didSelectCell(with abbr: CurrencyAbbr)
+    func numberOfRowsForTable() -> Int
+    func didSelectCell(with indexPath: IndexPath)
     func didChange(value: String)
+    func cellFor(indexPath: IndexPath) -> CurrenciesListViewCellModel?
 }
 

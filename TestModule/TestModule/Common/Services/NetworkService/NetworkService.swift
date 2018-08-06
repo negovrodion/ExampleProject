@@ -15,16 +15,16 @@ final class NetworkService {
     struct RequestParameters {
         
         /// Request method GET/POST.
-        var method: HTTPMethod
+        let method: HTTPMethod
         
         /// Dictionary of headers in [ String : String ] format.
-        var headers: HTTPHeaders?
+        let headers: HTTPHeaders?
         
         /// Dictionary of parameters in [ String : String ] format.
-        var parameters: Parameters?
+        let parameters: Parameters?
         
         /// How encode parameters for request.
-        var encoding: ParameterEncoding
+        let encoding: ParameterEncoding
         
         // MARK: - Initialization
         init(method: HTTPMethod = .get, headers: HTTPHeaders? = nil, parameters: Parameters? = nil,

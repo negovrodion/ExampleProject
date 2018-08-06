@@ -23,7 +23,8 @@ final class CurrenciesListPresenter {
     var interactor: CurrenciesListInteractorInput!
     
     // MARK: - Properties
-    var values = Set<CurrenciesListCurrencyPresenterModel>()
+    var indexPathAndAbbrMatching = [CurrencyAbbr]()
+    var values                   = Set<CurrenciesListCurrencyPresenterModel>()
     
     var showedError = false
     
@@ -33,8 +34,22 @@ final class CurrenciesListPresenter {
     var timer: Timer?
     
     // MARK: - Functions
+    func moveToTop(with: IndexPath) {
+        guard indexPathAndAbbrMatching.count > with.row, with.row > 0 else { return }
+        let topModel = indexPathAndAbbrMatching[with.row]
+        
+
+        for i in (1...with.row).reversed() {
+            indexPathAndAbbrMatching[i] = indexPathAndAbbrMatching[i - 1]
+        }
+        
+        indexPathAndAbbrMatching[0] = topModel
+    }
     
-    func getValue(with abbr: CurrencyAbbr) -> CurrenciesListCurrencyPresenterModel? {
+    func getValue(byIndexPath: IndexPath) -> CurrenciesListCurrencyPresenterModel? {
+        guard indexPathAndAbbrMatching.count > byIndexPath.row else { return nil }
+        
+        let abbr   = indexPathAndAbbrMatching[byIndexPath.row]
         let result = values.filter({ $0.abbr == abbr }).first
         
         return result
@@ -48,6 +63,24 @@ final class CurrenciesListPresenter {
                                         
             this.interactor.loadCurrencies(base: this.lastSelected.abbr)
         })
+    }
+    
+    func updateValuesExeptFirst() {
+        let updatedValues = indexPathAndAbbrMatching.compactMap { (currencyAbbr) -> String? in
+            guard currencyAbbr != lastSelected.abbr else {
+                return lastSelected.value.toMoneyString
+            }
+            
+            guard let ratio = values.filter({ $0.abbr == currencyAbbr }).first?.ratio else {
+                return ""
+            }
+            
+            let curVal = ratio * lastSelected.value
+            
+            return curVal.toMoneyString
+        }
+        
+        view?.updateValuesExeptFirst(values: updatedValues)
     }
     
     func recalculateRatios(oldRatio: Decimal) {

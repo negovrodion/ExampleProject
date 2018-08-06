@@ -37,9 +37,53 @@ class CurrenciesPresenter_UnitTests: XCTestCase {
         
         viewMock.state = .none
         
-        presenter.didFailedLoadData(error: .serverError)
+        presenter.didLoadCurrencies(with: .EUR, models: expectedModels)
+        
+        XCTAssertTrue(viewMock.state == .updateValuesExeptFirst)
+        XCTAssertTrue(presenter.values.count == expectedModels.count + 1)
+        
+        viewMock.state = .none
+        
+        presenter.didLoadCurrencies(with: .EUR, models: [CurrenciesListCurrencyPresenterModel]())
         
         XCTAssertTrue(viewMock.state == .showError)
+        
+        viewMock.state = .none
+        
+        presenter.didLoadCurrencies(with: .EUR, models: [CurrenciesListCurrencyPresenterModel]())
+        
+        XCTAssertTrue(viewMock.state == .none)
+    }
+    
+    func testMoveToTop() {
+        let models = [
+            CurrenciesListCurrencyPresenterModel(abbr: .AUD, ratio: 1.1),
+            CurrenciesListCurrencyPresenterModel(abbr: .BGN, ratio: 1.2),
+            CurrenciesListCurrencyPresenterModel(abbr: .BRL, ratio: 1.3)
+        ]
+        
+        var expectedModels = [CurrenciesListCurrencyPresenterModel(abbr: CurrenciesListPresenter.Constants.startAbbr,
+                                                                   ratio: 1,
+                                                                   value: CurrenciesListPresenter.Constants.startValue)]
+        expectedModels.append(contentsOf: models)
+        
+        let presenter = CurrenciesListPresenter()
+        presenter.didLoadCurrencies(with: .EUR, models: models)
+        
+        presenter.moveToTop(with: IndexPath(row: 0, section: 0))
+        
+        XCTAssertTrue(isEqualModelArrays(expected: expectedModels, test: presenter.indexPathAndAbbrMatching))
+
+        expectedModels = [expectedModels[3], expectedModels[0], expectedModels[1], expectedModels[2]]
+        
+        presenter.moveToTop(with: IndexPath(row: 3, section: 0))
+        
+        XCTAssertTrue(isEqualModelArrays(expected: expectedModels, test: presenter.indexPathAndAbbrMatching))
+        
+        presenter.moveToTop(with: IndexPath(row: 4, section: 0))
+        
+        XCTAssertTrue(isEqualModelArrays(expected: expectedModels, test: presenter.indexPathAndAbbrMatching))
+        
     }
     
     func testGetValue() {
@@ -57,46 +101,34 @@ class CurrenciesPresenter_UnitTests: XCTestCase {
         let presenter = CurrenciesListPresenter()
         presenter.didLoadCurrencies(with: .EUR, models: models)
         
-        guard let model = presenter.getValue(with: .AUD), model.abbr == .AUD else {
-            XCTFail("Has no model, but should be.")
+        guard let model = presenter.getValue(byIndexPath: IndexPath(row: 1, section: 0)), model.abbr == .AUD else {
+            XCTFail("Has no model, but should.")
             return
         }
     }
     
-    func testDidSelectCell() {
+    func testUpdateValuesExeptFirst() {
         let models = [
-            CurrenciesListCurrencyPresenterModel(abbr: .AUD, ratio: 2),
-            CurrenciesListCurrencyPresenterModel(abbr: .BGN, ratio: 4),
-            CurrenciesListCurrencyPresenterModel(abbr: .BRL, ratio: 8)
+            CurrenciesListCurrencyPresenterModel(abbr: .AUD, ratio: 1.1),
+            CurrenciesListCurrencyPresenterModel(abbr: .BGN, ratio: 1.2),
+            CurrenciesListCurrencyPresenterModel(abbr: .BRL, ratio: 1.3)
         ]
         
-        let expectedModels = [
-            CurrenciesListCurrencyPresenterModel(abbr: .BRL, ratio: 1),
-            CurrenciesListCurrencyPresenterModel(abbr: CurrenciesListPresenter.Constants.startAbbr, ratio: 0.125),
-            CurrenciesListCurrencyPresenterModel(abbr: .AUD, ratio: 0.25),
-            CurrenciesListCurrencyPresenterModel(abbr: .BGN, ratio: 0.5)
+        let expectedValues = [
+            "1",
+            "1,1",
+            "1,2",
+            "1,3"
         ]
         
-        let presenter = CurrenciesListPresenter()
+        let presenter  = CurrenciesListPresenter()
+        let viewMock   = CurrenciesViewMock()
+        presenter.view = viewMock
         presenter.didLoadCurrencies(with: .EUR, models: models)
         
-        presenter.didSelectCell(with: .BRL)
+        presenter.updateValuesExeptFirst()
         
-        XCTAssertTrue(presenter.lastSelected.abbr == .BRL)
-        for item in expectedModels {
-            XCTAssertTrue(item.ratio == presenter.values.filter({$0.abbr == item.abbr}).first?.ratio)
-        }
-    }
-    
-    func testDidChange() {
-        let expectedValue   = "1.1"
-        let expectedDecimal = Decimal(string: expectedValue)!
-        
-        let presenter = CurrenciesListPresenter()
-        presenter.didChange(value: expectedValue)
-        
-        XCTAssertTrue(presenter.lastSelected.value == expectedDecimal)
-    
+        XCTAssertTrue((viewMock.values ?? []) == expectedValues)
     }
     
     // MARK: - Private functions
@@ -115,6 +147,7 @@ fileprivate class CurrenciesViewMock: CurrenciesListViewInput {
     enum State {
         case none
         case updateTable
+        case updateValuesExeptFirst
         case showError
     }
     
@@ -131,8 +164,18 @@ fileprivate class CurrenciesViewMock: CurrenciesListViewInput {
         state = .showError
     }
     
-    func updateTable(with models: [CurrenciesListViewCellModel]) {
+    func updateTable() {
         state = .updateTable
+    }
+    
+    func updateValuesExeptFirst(values: [String]) {
+        state = .updateValuesExeptFirst
+        
+        self.values = values
+    }
+    
+    func updateFirstValue(value: String) {
+        
     }
     
 }

@@ -13,9 +13,8 @@ extension APIService: CurrenciesListAPIServiceProtocol {
 
     func loadCurrencies(base: CurrencyAbbr,
                         complition: @escaping ((APIService.RequestResult<[CurrencyParsedModel]>)) -> ()) {
-        let path       = Paths.Currencies.latest
-        let parameters = NetworkService.RequestParameters(parameters: [ "base" : base.rawValue ],
-                                                          encoding: URLEncoding.default)
+        let path       = Paths.Currencies.latest + "?base=" + base.rawValue
+        let parameters = NetworkService.RequestParameters()
         
         networkService.send(path: path, parameters: parameters) { [parseService] (result) in
             switch result {
